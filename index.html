@@ -451,6 +451,30 @@ body {
   cursor: not-allowed;
   pointer-events: none;
 }
+/* Skip button */
+.btn-skip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 24px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid rgba(240,184,72,0.4);
+  background: rgba(240,184,72,0.08);
+  color: var(--warning);
+  font-family: inherit;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+  width: 100%;
+}
+.btn-skip:hover {
+  background: rgba(240,184,72,0.15);
+  border-color: rgba(240,184,72,0.6);
+  box-shadow: 0 0 20px rgba(240,184,72,0.15);
+}
 
 /* Navigation */
 .nav-row {
@@ -667,6 +691,7 @@ body {
       <div class="q-text" id="q-text"></div>
       <div class="options-list" id="options-container"></div>
       <button class="btn btn-primary btn-next" id="btn-submit" style="display:none;" onclick="submitMulti()">确认提交</button>
+      <button class="btn-skip" id="btn-skip" onclick="skipQuestion()">💡 跳过，显示答案</button>
       <div class="feedback" id="feedback"></div>
       <button class="btn btn-primary btn-next" id="btn-next" style="display:none;" onclick="nextQuestion()">下一题 →</button>
     </div>
@@ -794,6 +819,7 @@ function renderQuestion() {
   // Hide submit/next buttons and feedback
   document.getElementById('btn-submit').style.display = mode === 'multi' ? 'flex' : 'none';
   document.getElementById('btn-next').style.display = 'none';
+  document.getElementById('btn-skip').style.display = 'flex';
   document.getElementById('feedback').className = 'feedback';
   document.getElementById('feedback').innerHTML = '';
 
@@ -837,6 +863,7 @@ function onOptionClick(label, btn) {
     }
 
     disableAllOptions();
+    document.getElementById('btn-skip').style.display = 'none';
     updateStats();
   } else {
     // Multi choice: toggle selection
@@ -889,6 +916,7 @@ function submitMulti() {
 
   disableAllOptions();
   document.getElementById('btn-submit').style.display = 'none';
+  document.getElementById('btn-skip').style.display = 'none';
   document.getElementById('btn-next').style.display = 'flex';
   document.getElementById('btn-next').focus();
   updateStats();
@@ -927,6 +955,30 @@ function addToWrongBook(q) {
     wrongBook[type].push(q);
     saveWrongBook();
   }
+}
+
+function skipQuestion() {
+  if (answered) return;
+  answered = true;
+  wrongCount++;
+
+  const q = questions[currentIndex];
+  addToWrongBook(q);
+
+  const allBtns = document.querySelectorAll('.option-btn');
+  q.answer.split('').forEach(l => {
+    allBtns.forEach(b => {
+      if (b.querySelector('.opt-label').textContent === l) b.classList.add('correct');
+    });
+  });
+
+  disableAllOptions();
+  showFeedback(false, q);
+  document.getElementById('btn-submit').style.display = 'none';
+  document.getElementById('btn-skip').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'flex';
+  document.getElementById('btn-next').focus();
+  updateStats();
 }
 
 function nextQuestion() {
@@ -1074,6 +1126,10 @@ document.addEventListener('keydown', function(e) {
   if (answered && e.key === 'Enter') {
     const nextBtn = document.getElementById('btn-next');
     if (nextBtn.style.display !== 'none') nextQuestion();
+    return;
+  }
+  if (!answered && (e.key === 's' || e.key === 'S')) {
+    skipQuestion();
     return;
   }
   if (mode === 'multi' && !answered && e.key === 'Enter') {
